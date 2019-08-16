@@ -4,10 +4,15 @@ Implementation of [The Super Tiny Compiler](https://github.com/jamiebuilds/the-s
 
 ## Comments
 
-Writing this compiler required writing 4 seperate pieces: the lexer, the parser, the transformer and the generator.
+During the process of migrating the JavaScript to OCaml, there were a few things that I thought were noteworthy.
 
-The lexer and parser just required coverting to a recursive solution from an imperative one, which some pattern matching tricks required for the parser (Modifying a type contructor after it was created by destructuring it again with pattern matching)
+Lexer: The lexer just required converting to a recursive solution from an imperative one, nothing out of the ordinary here.
 
+Parser: The parser also required implementing a recursive solution, but in addition required some fancy pattern matching. It required modifying type contructors after they were created by destructuring them again with pattern matching, this is something I have never done before and thought it was an interesting.
+
+Transformer: The transformer in the JavaScript code used the visitor design pattern for defining how to handle the traversed nodes. This becomes much simpler in OCaml due to the power of pattern matching.
+
+Generator: The generator is basically a direct port.
 
 ## Related links
 

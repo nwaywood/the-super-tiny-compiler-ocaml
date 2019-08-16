@@ -11,14 +11,14 @@ type astNode =
     | NumberLiteral of string
     | CallExpression of string * astNode list
 
-type transformedAstNode = 
+type transformedAstNode =
     | TNumber of string
     | TCallExpression of string * transformedAstNode list
     | TExpressionStatement of transformedAstNode
 
 let stringToListChar s =
-  let rec exp i l = if i < 0 then l else exp (i - 1) ((s.[i]) :: l) in
-  exp ((String.length s) - 1) []
+  let rec f i l = if i < 0 then l else f (i - 1) ((s.[i]) :: l) in
+  f ((String.length s) - 1) []
 
 let tokenizer input =
     let rec tok input current tokens =
@@ -86,26 +86,26 @@ let parserFn = fun tokens ->
 
 (* The tranformer converts the original AST into the new form to represent the output.
  * In this simple case the only thing we need to do is wrap the top level CallExpression's
- * so that we know where to put the semicolons 
+ * so that we know where to put the semicolons
  *)
 let transformer = fun astList ->
   let wrapNode = fun n -> TExpressionStatement n in
   let rec transform = fun astNode ->
     match astNode with
-    | CallExpression (c, l) -> 
+    | CallExpression (c, l) ->
       let nl = l |> List.map transform in
       TCallExpression (c, nl)
     | NumberLiteral num -> TNumber num in
   astList |> (List.map transform) |> (List.map wrapNode)
 
-let codeGenerator = fun nodes -> 
+let codeGenerator = fun nodes ->
   let rec codeGenerate = fun node ->
-    match node with 
+    match node with
     | TExpressionStatement e -> (codeGenerate e) ^ ";\n"
     | TCallExpression (c, l) -> c ^ "(" ^ (String.concat "," (List.rev (List.map codeGenerate l))) ^ ")"
     | TNumber n -> n in
   (* Reduce the list of transformedAstNode's to a string of TExpressionStatement's *)
-  List.fold_left (fun acc x -> acc ^ codeGenerate x) "" nodes
+  List.fold_left (fun acc x -> acc ^ codeGenerate x) "" (List.rev nodes)
 
 (* DEBUG *)
 
