@@ -11,12 +11,9 @@ type astNode =
     | NumberLiteral of string
     | CallExpression of string * astNode list
 
-type callee = 
-    | Identifier of string
-
 type transformedAstNode = 
     | TNumber of string
-    | TCallExpression of callee * transformedAstNode list
+    | TCallExpression of string * transformedAstNode list
     | TExpressionStatement of transformedAstNode
 
 let stringToListChar s =
@@ -87,23 +84,27 @@ let parserFn = fun tokens ->
         | (CloseParen :: _, _, _) -> Error "Unexpected CloseParen token" in
     parse tokens [] []
 
+(* The tranformer converts the original AST into the new form to represent the output.
+ * In this simple case the only thing we need to do is wrap the top level CallExpression's
+ * so that we know where to put the semicolons 
+ *)
 let transformer = fun astList ->
   let wrapNode = fun n -> TExpressionStatement n in
   let rec transform = fun astNode ->
     match astNode with
     | CallExpression (c, l) -> 
       let nl = l |> List.map transform in
-      TCallExpression ((Identifier c), nl)
+      TCallExpression (c, nl)
     | NumberLiteral num -> TNumber num in
   astList |> (List.map transform) |> (List.map wrapNode)
 
 let codeGenerator = fun nodes -> 
   let rec codeGenerate = fun node ->
     match node with 
-    | TExpressionStatement e -> String.concat "" [codeGenerate e; ";\n"]
-    | TCallExpression ((Identifier c), l) -> 
-        String.concat "" [c; "("; String.concat "," (List.rev (List.map codeGenerate l)); ")"]
+    | TExpressionStatement e -> (codeGenerate e) ^ ";\n"
+    | TCallExpression (c, l) -> c ^ "(" ^ (String.concat "," (List.rev (List.map codeGenerate l))) ^ ")"
     | TNumber n -> n in
+  (* Reduce the list of transformedAstNode's to a string of TExpressionStatement's *)
   List.fold_left (fun acc x -> acc ^ codeGenerate x) "" nodes
 
 (* DEBUG *)
@@ -123,14 +124,19 @@ let rec astNodeToString = fun astNode ->
   | CallExpression (s, [a; b]) -> (String.concat "" [s; "("; (astNodeToString b); ","; (astNodeToString a); ")"])
   | CallExpression (_, _) -> "This should be impossible"
 
-(*List.iter (fun a -> Printf.printf "%s " (tokenToString a)) (tokenizer input);;*)
+(*
+ * Print the tokens
+ * List.iter (fun a -> Printf.printf "%s " (tokenToString a)) (tokenizer input);;*)
 
-
+(*
+ * Print the original AST
 let () =
   match (parserFn(tokenizer input)) with
   | Ok l -> List.fold_left (fun acc x -> acc ^ astNodeToString x) "" l |> print_string
   | Error s -> print_string s
+*)
 
+(* Print the output *)
 let () =
   match (parserFn(tokenizer input)) with
   | Ok l -> l |> transformer |> codeGenerator |> print_string
