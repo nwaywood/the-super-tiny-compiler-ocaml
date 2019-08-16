@@ -11,6 +11,14 @@ type astNode =
     | NumberLiteral of string
     | CallExpression of string * astNode list
 
+type callee = 
+    | Identifier of string
+
+type transformedAstNode = 
+    | TNumber of string
+    | TCallExpression of callee * transformedAstNode list
+    | TExpressionStatement of transformedAstNode
+
 let stringToListChar s =
   let rec exp i l = if i < 0 then l else exp (i - 1) ((s.[i]) :: l) in
   exp ((String.length s) - 1) []
@@ -79,6 +87,25 @@ let parserFn = fun tokens ->
         | (CloseParen :: _, _, _) -> Error "Unexpected CloseParen token" in
     parse tokens [] []
 
+let transformer = fun astList ->
+  let wrapNode = fun n -> TExpressionStatement n in
+  let rec transform = fun astNode ->
+    match astNode with
+    | CallExpression (c, l) -> 
+      let nl = l |> List.map transform in
+      TCallExpression ((Identifier c), nl)
+    | NumberLiteral num -> TNumber num in
+  astList |> (List.map transform) |> (List.map wrapNode)
+
+let codeGenerator = fun nodes -> 
+  let rec codeGenerate = fun node ->
+    match node with 
+    | TExpressionStatement e -> String.concat "" [codeGenerate e; ";\n"]
+    | TCallExpression ((Identifier c), l) -> 
+        String.concat "" [c; "("; String.concat "," (List.rev (List.map codeGenerate l)); ")"]
+    | TNumber n -> n in
+  List.fold_left (fun acc x -> acc ^ codeGenerate x) "" nodes
+
 (* DEBUG *)
 
 let tokenToString = fun token ->
@@ -89,19 +116,22 @@ let tokenToString = fun token ->
     | String s -> s
     | Name n -> n
 
+
 let rec astNodeToString = fun astNode ->
   match astNode with
-  | NumberLiteral s -> print_string s
-  | CallExpression (s, [a; b]) ->
-    print_string s;
-    astNodeToString b;
-    astNodeToString a;
-  | CallExpression (_, _) -> print_string "This should be impossible"
+  | NumberLiteral s -> s
+  | CallExpression (s, [a; b]) -> (String.concat "" [s; "("; (astNodeToString b); ","; (astNodeToString a); ")"])
+  | CallExpression (_, _) -> "This should be impossible"
 
 (*List.iter (fun a -> Printf.printf "%s " (tokenToString a)) (tokenizer input);;*)
 
+
 let () =
   match (parserFn(tokenizer input)) with
-  | Ok l -> List.iter (astNodeToString) l
+  | Ok l -> List.fold_left (fun acc x -> acc ^ astNodeToString x) "" l |> print_string
   | Error s -> print_string s
 
+let () =
+  match (parserFn(tokenizer input)) with
+  | Ok l -> l |> transformer |> codeGenerator |> print_string
+  | Error s -> print_string s
