@@ -2,6 +2,10 @@
 
 Implementation of [The Super Tiny Compiler](https://github.com/jamiebuilds/the-super-tiny-compiler) in OCaml.
 
+## Usage
+
+`> ocaml main.ml`
+
 ## Comments
 
 During the process of migrating the JavaScript to OCaml, there were a few things that I thought were noteworthy.
