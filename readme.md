@@ -2,6 +2,10 @@
 
 Implementation of [The Super Tiny Compiler](https://github.com/jamiebuilds/the-super-tiny-compiler) in OCaml.
 
+I did this port for two reasons:
+1. To learn ReasonML/OCaml
+2. To learn how compilers work
+
 ## Usage
 
 `> ocaml main.ml`
